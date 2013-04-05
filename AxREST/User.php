@@ -20,6 +20,7 @@ class User extends \Tonic\Resource
     private $db;
     private $output;
     private $responseCode = \Tonic\Response::OK;
+    private $headers;
 
     /**
      * User Contruct.
@@ -43,16 +44,12 @@ class User extends \Tonic\Resource
      */
     public function view($identity = null)
     {
-        $this->output->users = array();
-        $this->output->user = false;
         $sql = "SELECT * FROM `user`";
 
         if ($identity !== null) {
             $sql .= " WHERE `";
 
-            if (true === is_int($identity)) {
-                $sql .= "id";
-            } else if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
+            if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
                 $sql .= "email";
             } else {
                 $sql .= "name";
@@ -63,18 +60,26 @@ class User extends \Tonic\Resource
             $query = $this->db->prepare($sql);
             $query->bindValue(':identity', $identity);
         } else {
-            $query = $this->db->prepare($sql . " ORDER BY `id` ASC");
+            $query = $this->db->prepare($sql . " ORDER BY `email` ASC");
         }
 
         $query->execute();
 
         if ($identity !== null) {
             $this->output->user = $query->fetch(\PDO::FETCH_OBJ);
+
+            if (false === $this->output->user) {
+                unset($this->output->user);
+            }
         } else {
             $this->output->users = $query->fetchAll(\PDO::FETCH_OBJ);
+
+            if (0 === count($this->output->users)) {
+                unset($this->output->users);
+            }
         }
 
-        if (false === $this->output->user && 0 === count($this->output->users)) {
+        if (false === isset($this->output->user) && false === isset($this->output->users)) {
             if ($identity !== null) {
                 $this->output->message = "We have no user by that identification.";
             } else {
@@ -98,46 +103,20 @@ class User extends \Tonic\Resource
      */
     public function add()
     {
-        $error = false;
-
-        if (false === isset($this->request->data->name)) {
-            $this->output->error[] = "A name must be set for the user.";
-            $error = true;
-        } else if (150 < strlen($this->request->data->name)) {
-            $this->output->error[] = "The name must be 150 characters or less.";
-            $error = true;
-        }
-
-        if (false === isset($this->request->data->email)) {
-            $this->output->error[] = "An email must be set for the user.";
-            $error = true;
-        } else if (255 < strlen($this->request->data->email)) {
-            $this->output->error[] = "The email must be 255 characters or less.";
-            $error = true;
-        } else if (false === filter_var($this->request->data->email, FILTER_VALIDATE_EMAIL)) {
-            $this->output->error[] = "The email must be valid.";
-            $error = true;
-        }
-
-        if (false === isset($this->request->data->dateOfBirth)) {
-            $this->request->data->dateOfBirth = null;
-        } else if (false === \DateTime::createFromFormat('Y-m-d', $this->request->data->dateOfBirth)) {
-            $this->output->error[] = "The date must be in the format of YYYY-mm-dd.";
-            $error = true;
-        }
+        $error = $this->validate();
 
         if (true === $error) {
             $this->output->message = "An error was encountered.";
             $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
         } else {
-            $query = $this->db->prepare("INSERT INTO `user` (`name`, `email`, `dateOfBirth`) VALUES (:name, :email, :dateOfBirth)");
+            $query = $this->db->prepare("INSERT INTO `user` (`name`, `email`, `password`, `dateOfBirth`) VALUES (:name, :email, :password, :dateOfBirth)");
             $query->bindValue(":name", $this->request->data->name);
             $query->bindValue(":email", $this->request->data->email);
+            $query->bindValue(":password", hash('sha256', $this->request->data->password));
             $query->bindValue(":dateOfBirth", $this->request->data->dateOfBirth);
 
             try {
                 $query->execute();
-                $userId = $this->db->lastInsertId();
             } catch (\PDOException $e) {
                 $error = true;
                 $this->output->message = "Unable to create user.";
@@ -147,16 +126,16 @@ class User extends \Tonic\Resource
 
             if (false === $error) {
                 $this->output->user = new \stdClass();
-                $this->output->user->id = $userId;
                 $this->output->user->name = $this->request->data->name;
                 $this->output->user->email = $this->request->data->email;
                 $this->output->user->dateOfBirth = $this->request->data->dateOfBirth;
                 $this->output->message = "User successfully created.";
                 $this->responseCode = \Tonic\Response::CREATED;
+                $this->headers["Location"] = "/" . $this->request->data->email;
             }
         }
 
-        return new \Tonic\Response($this->responseCode, $this->output);
+        return new \Tonic\Response($this->responseCode, $this->output, $this->headers);
     }
 
     /**
@@ -164,23 +143,114 @@ class User extends \Tonic\Resource
      * @accepts application/json
      * @provides application/json
      * @json
+     * @param  str $identity
      * @return \Tonic\Response
      */
-    public function update()
+    public function update($identity)
     {
-        return new \Tonic\Response($this->responseCode, $this->request->data);
+        if (false === isset($identity)) {
+            $this->output->message = "You must specifiy a user to be updated.";
+            $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+        } else {
+            $error = $this->validate(true);
+
+            if (true === $error) {
+                $this->output->message = "You must specifiy a user to be deleted.";
+                $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            } else {
+                $sql = "Update `user` SET ";
+
+                if (true === isset($this->request->data->name)) {
+                    $sql .= "`name` = :name";
+                }
+
+                if (true === isset($this->request->data->email)) {
+                    $sql .= "`email` = :email";
+                }
+
+                if (true === isset($this->request->data->password)) {
+                    $sql .= "`password` = :password";
+                }
+
+                if (true === isset($this->request->data->dateOfBirth)) {
+                    $sql .= "`dateOfBirth` = :dateOfBirth";
+                }
+
+                $sql .= " WHERE `";
+
+                if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
+                    $sql .= "email";
+                } else {
+                    $sql .= "name";
+                }
+
+                $sql .= "` = :identity";
+
+                $query = $this->db->prepare($sql);
+                $query->bindValue(':identity', $identity);
+
+                if (true === isset($this->request->data->name)) {
+                    $query->bindValue(':name', $this->request->data->name);
+                }
+
+                if (true === isset($this->request->data->email)) {
+                    $query->bindValue(':email', $this->request->data->email);
+                }
+
+                if (true === isset($this->request->data->password)) {
+                    $query->bindValue(':password', $this->request->data->password);
+                }
+
+                if (true === isset($this->request->data->dateOfBirth)) {
+                    $query->bindValue(':dateOfBirth', $this->request->data->dateOfBirth);
+                }
+
+                $query->execute();
+                $this->output->message = "The user has been successfully updated.";
+                $this->headers["Location"] = true === isset($this->request->data->email) ? $this->request->data->email : $identity;
+                $this->responseCode = \Tonic\Response::ACCEPTED;
+            }
+        }
+
+        return new \Tonic\Response($this->responseCode, $this->output, $this->headers);
     }
 
     /**
      * @method DELETE
-     * @accepts application/json
      * @provides application/json
      * @json
+     * @param  str $identity
      * @return \Tonic\Response
      */
-    public function delete()
+    public function delete($identity)
     {
-        return new \Tonic\Response($this->responseCode, $this->request->data);
+        if (false === isset($identity)) {
+            $this->output->message = "You must specifiy a user to be deleted.";
+            $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+        } else {
+            $sql = "DELETE FROM `user` WHERE `";
+
+            if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
+                $sql .= "email";
+            } else {
+                $sql .= "name";
+            }
+
+            $sql .= "` = :identity";
+
+            $query = $this->db->prepare($sql);
+            $query->bindValue(':identity', $identity);
+
+            if (false === $query->execute()) {
+                $this->output->message = "You must specifiy a user to be deleted.";
+                $this->output->error[] = $query->errorInfo();
+                $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            } else {
+                $this->output->message = "The user has been successfully deleted.";
+                $this->responseCode = \Tonic\Response::ACCEPTED;
+            }
+        }
+        return new \Tonic\Response($this->responseCode, $this->output);
     }
 
     /**
@@ -201,5 +271,65 @@ class User extends \Tonic\Resource
             $response->contentType = "application/json";
             $response->body = json_encode($response->body);
         });
+    }
+
+    /**
+     * Validate the data for the user.
+     *
+     * @param  boolean $update If true then we don't need to check if set.
+     *
+     * @return boolean
+     */
+    private function validate($update = false)
+    {
+        $error = false;
+
+        if (false === isset($this->request->data->name) && false === $update) {
+            $this->output->error[] = "A name must be set for the user.";
+            $error = true;
+        } else if (true === isset($this->request->data->name) && 150 < strlen($this->request->data->name)) {
+            $this->output->error[] = "The name must be 150 characters or less.";
+            $error = true;
+        }
+
+        if (false === isset($this->request->data->email) && false === $update) {
+            $this->output->error[] = "An email must be set for the user.";
+            $error = true;
+        } else if (true === isset($this->request->data->email) && 255 < strlen($this->request->data->email)) {
+            $this->output->error[] = "The email must be 255 characters or less.";
+            $error = true;
+        } else if (true === isset($this->request->data->email) && false === filter_var($this->request->data->email, FILTER_VALIDATE_EMAIL)) {
+            $this->output->error[] = "The email must be valid.";
+            $error = true;
+        }
+
+        if (false === isset($this->request->data->password) && false === $update) {
+            $this->output->error[] = "A password must be set for the user.";
+            $error = true;
+        } else if (true === isset($this->request->data->password) && 3 > strlen($this->request->data->password)) {
+            $this->output->error[] = "The password must be at least 3 characters long.";
+            $error = true;
+        }
+
+        if (false === isset($this->request->data->dateOfBirth) && false === $update) {
+            $this->request->data->dateOfBirth = null;
+        } else if (true === isset($this->request->data->dateOfBirth) && false === \DateTime::createFromFormat('Y-m-d', $this->request->data->dateOfBirth)) {
+            $this->output->error[] = "The date must be in the format of YYYY-mm-dd.";
+            $error = true;
+        }
+
+        if (true === $update) {
+            if (
+                false === isset($this->request->data->name) &&
+                false === isset($this->request->data->email) &&
+                false === isset($this->request->data->password) &&
+                false === isset($this->request->data->dateOfBirth))
+            {
+                $this->output->error[] = "You must provide a value for at least one field to update.";
+                $error = true;
+            }
+        }
+
+        return $error;
     }
 }
