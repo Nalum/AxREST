@@ -107,7 +107,7 @@ class User extends \Tonic\Resource
 
         if (true === $error) {
             $this->output->message = "An error was encountered.";
-            $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            $this->responseCode = \Tonic\Response::NOTFOUND;
         } else {
             $query = $this->db->prepare("INSERT INTO `user` (`name`, `email`, `password`, `dateOfBirth`) VALUES (:name, :email, :password, :dateOfBirth)");
             $query->bindValue(":name", $this->request->data->name);
@@ -150,13 +150,13 @@ class User extends \Tonic\Resource
     {
         if (false === isset($identity)) {
             $this->output->message = "You must specifiy a user to be updated.";
-            $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            $this->responseCode = \Tonic\Response::NOTFOUND;
         } else {
             $error = $this->validate(true);
 
             if (true === $error) {
                 $this->output->message = "You must specifiy a user to be deleted.";
-                $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+                $this->responseCode = \Tonic\Response::NOTFOUND;
             } else {
                 $sql = "Update `user` SET ";
 
@@ -206,9 +206,15 @@ class User extends \Tonic\Resource
                 }
 
                 $query->execute();
-                $this->output->message = "The user has been successfully updated.";
-                $this->headers["Location"] = true === isset($this->request->data->email) ? $this->request->data->email : $identity;
-                $this->responseCode = \Tonic\Response::ACCEPTED;
+
+                if (0 === $query->rowCount()) {
+                    $this->output->message = "We have no user by that identification.";
+                    $this->responseCode = \Tonic\Response::NOTFOUND;
+                } else {
+                    $this->output->message = "The user has been successfully updated.";
+                    $this->headers["Location"] = true === isset($this->request->data->email) ? $this->request->data->email : $identity;
+                    $this->responseCode = \Tonic\Response::ACCEPTED;
+                }
             }
         }
 
@@ -226,7 +232,7 @@ class User extends \Tonic\Resource
     {
         if (false === isset($identity)) {
             $this->output->message = "You must specifiy a user to be deleted.";
-            $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            $this->responseCode = \Tonic\Response::NOTFOUND;
         } else {
             $sql = "DELETE FROM `user` WHERE `";
 
@@ -237,14 +243,13 @@ class User extends \Tonic\Resource
             }
 
             $sql .= "` = :identity";
-
             $query = $this->db->prepare($sql);
             $query->bindValue(':identity', $identity);
+            $query->execute();
 
-            if (false === $query->execute()) {
-                $this->output->message = "You must specifiy a user to be deleted.";
-                $this->output->error[] = $query->errorInfo();
-                $this->responseCode = \Tonic\Response::NONAUTHORATIVEINFORMATION;
+            if (0 === $query->rowCount()) {
+                $this->output->message = "We have no user by that identification.";
+                $this->responseCode = \Tonic\Response::NOTFOUND;
             } else {
                 $this->output->message = "The user has been successfully deleted.";
                 $this->responseCode = \Tonic\Response::ACCEPTED;
@@ -319,12 +324,10 @@ class User extends \Tonic\Resource
         }
 
         if (true === $update) {
-            if (
-                false === isset($this->request->data->name) &&
+            if (false === isset($this->request->data->name) &&
                 false === isset($this->request->data->email) &&
                 false === isset($this->request->data->password) &&
-                false === isset($this->request->data->dateOfBirth))
-            {
+                false === isset($this->request->data->dateOfBirth)) {
                 $this->output->error[] = "You must provide a value for at least one field to update.";
                 $error = true;
             }
