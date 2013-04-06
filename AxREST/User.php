@@ -238,7 +238,13 @@ class User extends \Tonic\Resource
 
                 // Check that the user was successfully updated. If not let the requester know what happened.
                 if (0 === $query->rowCount()) {
-                    $this->output->message = "We have no user by that identification.";
+                    if ("00000" === $query->errorCode()) {
+                        $this->output->message = "No rows affected by query.";
+                    } else {
+                        $this->output->message = "There was an error running the query.";
+                        $this->output->error[] = $query->errorInfo();
+                    }
+
                     $this->responseCode = \Tonic\Response::NOTFOUND;
                 } else { // The user was updated.
                     $this->output->message = "The user has been successfully updated.";
