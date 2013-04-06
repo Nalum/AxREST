@@ -26,7 +26,7 @@ A user is comprised of the following fields:
 -   `password` This is a string and must be at least 3 characters long. It is then hashed using SHA256.
 -   `dateOfBirth` This is a string and must be in the format of `yyyy-mm-dd` e.g. `1975-03-24`. This field is not required and can be left out of the __PUT__ request.
 
-The email address is the Primary Key and so must be Unique. The name is set up as a Unique Key and so must be Unique.
+The email address is the Primary Key and so must be Unique.
 
 The following SQL will add the table to your database.
 
@@ -35,8 +35,7 @@ The following SQL will add the table to your database.
         `email` varchar(255) COLLATE utf8_bin NOT NULL,
         `password` varchar(64) COLLATE utf8_bin NOT NULL,
         `dateOfBirth` date DEFAULT NULL,
-        PRIMARY KEY (`email`),
-        UNIQUE KEY `name` (`name`)
+        PRIMARY KEY (`email`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 To connect to your database find the following on line 16 in `./dispatch.php`:
@@ -123,7 +122,7 @@ There are two calls to __GET__:
             }]
         }
 
-2.  The second is `/:identity`, where `:identity` is either the name or email address of the user you are looking for.
+2.  The second is `/:identity`, where `:identity` is the email address of the user you are looking for.
 
     This will return an object with a message and an object containing the user.
 
@@ -131,7 +130,7 @@ There are two calls to __GET__:
 
     URL:
 
-        /Test User
+        /test@user.com
 
     __Example Response__:
 
@@ -153,7 +152,7 @@ There are two calls to __GET__:
 
 ####POST
 
-We use __POST__ to update an existing user. This is done by specifying the `:identity` that we want to update and posting data. Again `:identity` can be the name or the email address of the user we want.
+We use __POST__ to update an existing user. This is done by specifying the `:identity` that we want to update and posting data.
 
 __Example Request__:
 

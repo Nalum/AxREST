@@ -71,23 +71,20 @@ class User extends \Tonic\Resource
     {
         $sql = "SELECT * FROM `user`";
 
-        // Do we have an identity? If so then we are getting one user.
-        if (null !== $identity) {
-            $sql .= " WHERE `";
-
+        // Do we have an identity? If not then we want a list of all users.
+        if (null === $identity) {
+            $query = $this->db->prepare($sql . " ORDER BY `email` ASC");
+        } else {// If so then we are getting one user.
             // Is the identity a valid email address? If so then get the user by the email address field.
-            if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
-                $sql .= "email";
-            } else { // If not then get the user by the name field.
-                $sql .= "name";
+            if (false === filter_var($identity, FILTER_VALIDATE_EMAIL)) {
+                $this->output->message = "You must supply a valid email address.";
+                $this->responseCode = \Tonic\Response::NOTACCEPTABLE;
+                return new \Tonic\Response($this->responseCode, $this->output);
             }
 
-            $sql .= "` = :identity";
-
+            $sql .= " WHERE `email` = :identity";
             $query = $this->db->prepare($sql);
             $query->bindValue(':identity', $identity);
-        } else { // If not then we want a list of all users.
-            $query = $this->db->prepare($sql . " ORDER BY `email` ASC");
         }
 
         $query->execute();
@@ -179,9 +176,9 @@ class User extends \Tonic\Resource
     public function update($identity)
     {
         // Do we have an identity? No tell the requester that we need one.
-        if (false === isset($identity)) {
+        if (false === isset($identity) || false === filter_var($identity, FILTER_VALIDATE_EMAIL)) {
             $this->output->message = "You must specifiy a user to be updated.";
-            $this->responseCode = \Tonic\Response::NOTFOUND;
+            $this->responseCode = \Tonic\Response::NOTACCEPTABLE;
         } else { // Yes.
             // Validate the data before continuing.
             $error = $this->validate(true);
@@ -213,17 +210,7 @@ class User extends \Tonic\Resource
                     $sql .= "`dateOfBirth` = :dateOfBirth";
                 }
 
-                $sql .= " WHERE `";
-
-                // Is the identity a name or an email?
-                if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
-                    $sql .= "email";
-                } else {
-                    $sql .= "name";
-                }
-
-                $sql .= "` = :identity";
-
+                $sql .= " WHERE `email` = :identity";
                 $query = $this->db->prepare($sql);
                 $query->bindValue(':identity', $identity);
 
@@ -276,20 +263,11 @@ class User extends \Tonic\Resource
     public function delete($identity)
     {
         // Do we have an identity? If not tell the requester.
-        if (false === isset($identity)) {
+        if (false === isset($identity) || false === filter_var($identity, FILTER_VALIDATE_EMAIL)) {
             $this->output->message = "You must specifiy a user to be deleted.";
             $this->responseCode = \Tonic\Response::NOTFOUND;
         } else { // Yes
-            $sql = "DELETE FROM `user` WHERE `";
-
-            // Is the identity a name or an email?
-            if (false !== filter_var($identity, FILTER_VALIDATE_EMAIL)) {
-                $sql .= "email";
-            } else {
-                $sql .= "name";
-            }
-
-            $sql .= "` = :identity";
+            $sql = "DELETE FROM `user` WHERE `email` = :identity";
             $query = $this->db->prepare($sql);
             $query->bindValue(':identity', $identity);
             $query->execute();
@@ -322,7 +300,6 @@ class User extends \Tonic\Resource
         });
 
         $this->after(function ($response) {
-            $response->contentType = "application/json";
             $response->body = json_encode($response->body); // Encode the data into JSON.
         });
     }
