@@ -38,19 +38,23 @@ try {
     $resource = $app->getResource($request);
     $response = $resource->exec();
 } catch (Tonic\NotFoundException $e) {
+    // We could not find the Resource that was requested.
     $json->message = "We were unable to find what you were looking for.";
     $json->error[] = $e->getMessage();
     $response = new Tonic\Response(Tonic\Response::NOTFOUND, json_encode($json));
 } catch (Tonic\UnauthorizedException $e) {
+    // The request wasnot authorized so cannot access the resource it was looking for.
     $json->message = "You must be authorized to used this service.";
     $json->error[] = $e->getMessage();
     $response = new Tonic\Response(Tonic\Response::UNAUTHORIZED, json_encode($json));
     $response->wwwAuthenticate = 'Basic realm="My Realm"';
 } catch (Tonic\Exception $e) {
+    // Covers non specific Exceptions thrown in the application.
     $json->message = "There was an error with your request.";
     $json->error[] = $e->getMessage();
     $response = new Tonic\Response($e->getCode(), json_encode($json));
 }
 
-// Finally output the response to the request.
+// Finally set the content type and output the response to the request.
+$response->contentType = "application/json";
 $response->output();
