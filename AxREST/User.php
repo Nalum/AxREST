@@ -242,7 +242,7 @@ class User extends \Tonic\Resource
                     $this->responseCode = \Tonic\Response::NOTFOUND;
                 } else { // The user was updated.
                     $this->output->message = "The user has been successfully updated.";
-                    $this->headers["Location"] = true === isset($this->request->data->email) ? $this->request->data->email : $identity;
+                    $this->headers["Location"] = true === isset($this->request->data->email) ? "/" . $this->request->data->email : "/" . $identity;
                     $this->responseCode = \Tonic\Response::ACCEPTED;
                 }
             }
