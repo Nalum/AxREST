@@ -20,6 +20,8 @@ A user is comprised of the following fields:
 -   `password` This is a string and must be at least 3 characters long. It is then hashed using SHA256.
 -   `dateOfBirth` This is a string and must be in the format of `yyyy-mm-dd` e.g. `1975-03-24`. This field is not required and can be left out of the __PUT__ request.
 
+The email address is the Primary Key and so must be Unique. The name is set up as a Unique Key and so must be Unique.
+
 Use of this service is as follows:
 
 ###PUT
