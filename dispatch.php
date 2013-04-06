@@ -1,9 +1,19 @@
 <?php
-ini_set('error_reporting', E_ALL);
+/**
+ * Dispatch file.
+ *
+ * Using the .htaccess file to redirect all traffic to this file
+ * if the requested file does not already exist.
+ *
+ * @author Luke Mallon <mallon.luke@gmail.com>
+ */
+ini_set('error_reporting', E_ALL ^ E_WARNING);
 ini_set('display_errors', true);
 
-require 'Tonic/Autoloader.php';
+// Load the Tonic Autoloader.
+require './Tonic/Autoloader.php';
 
+// Get the Database details from the Cloud Service.
 $services_json = json_decode(getenv("VCAP_SERVICES"),true);
 $mysql_config = $services_json["mysql-5.1"][0]["credentials"];
 
@@ -11,25 +21,36 @@ define('PDO_CONN_STRING', 'mysql:host=' . $mysql_config["hostname"] . ';port=' .
 define('PDO_CONN_USER', $mysql_config["username"]);
 define('PDO_CONN_PASS', $mysql_config["password"]);
 
+// Set the config for Tonic. Loading in our Resource files.
 $config = array(
     'load' => array(
         './AxREST/*.php',
     )
 );
 
+// Create our applicatoin.
 $app = new Tonic\Application($config);
 $request = new Tonic\Request();
+$json = new stdClass();
 
+// Start the application.
 try {
     $resource = $app->getResource($request);
     $response = $resource->exec();
 } catch (Tonic\NotFoundException $e) {
-    $response = new Tonic\Response(404, $e->getMessage());
+    $json->message = "We were unable to find what you were looking for.";
+    $json->error[] = $e->getMessage();
+    $response = new Tonic\Response(Tonic\Response::NOTFOUND, json_encode($json));
 } catch (Tonic\UnauthorizedException $e) {
-    $response = new Tonic\Response(401, $e->getMessage());
+    $json->message = "You must be authorized to used this service.";
+    $json->error[] = $e->getMessage();
+    $response = new Tonic\Response(Tonic\Response::UNAUTHORIZED, json_encode($json));
     $response->wwwAuthenticate = 'Basic realm="My Realm"';
 } catch (Tonic\Exception $e) {
-    $response = new Tonic\Response($e->getCode(), $e->getMessage());
+    $json->message = "There was an error with your request.";
+    $json->error[] = $e->getMessage();
+    $response = new Tonic\Response($e->getCode(), json_encode($json));
 }
 
+// Finally output the response to the request.
 $response->output();
