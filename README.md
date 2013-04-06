@@ -13,6 +13,12 @@ Requirements
 How To
 ------
 
+###Local Set-up
+
+Take the folder `/src/Tonic` from the Tonic github repository and place it in the root folder of this service `/Tonic`.
+
+###MySQL Table
+
 A user is comprised of the following fields:
 
 -   `name` This is a string limited to 150 characters.
@@ -22,9 +28,32 @@ A user is comprised of the following fields:
 
 The email address is the Primary Key and so must be Unique. The name is set up as a Unique Key and so must be Unique.
 
-Use of this service is as follows:
+The following SQL will add the table to your database.
 
-###PUT
+    CREATE TABLE IF NOT EXISTS `user` (
+        `name` varchar(150) COLLATE utf8_bin NOT NULL,
+        `email` varchar(255) COLLATE utf8_bin NOT NULL,
+        `password` varchar(64) COLLATE utf8_bin NOT NULL,
+        `dateOfBirth` date DEFAULT NULL,
+        PRIMARY KEY (`email`),
+        UNIQUE KEY `name` (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+To connect to your database find the following on line 16 in `./dispatch.php`:
+
+    // Get the Database details from the Cloud Service.
+    $services_json = json_decode(getenv("VCAP_SERVICES"),true);
+    $mysql_config = $services_json["mysql-5.1"][0]["credentials"];
+
+    define('PDO_CONN_STRING', 'mysql:host=' . $mysql_config["hostname"] . ';port=' . $mysql_config["port"] . ';dbname=' . $mysql_config["name"] . ';');
+    define('PDO_CONN_USER', $mysql_config["username"]);
+    define('PDO_CONN_PASS', $mysql_config["password"]);
+
+If you are using the AppFrog Cloud hosting you should not need to change anything. Otherwise change the `PDO_*` constants to suit your connection details.
+
+###Use Service
+
+####PUT
 
 We use __PUT__ to create a new user in the database. Requests for this are sent to `/`
 
@@ -59,11 +88,11 @@ Body:
         "message": "User successfully created."
     }
 
-###GET
+####GET
 
 There are two calls to __GET__:
 
-1.  The first is `/` this will return an array containing all users within the database.
+1.  The first is `/`, this will return an object containing a message and an array containing all users within the database.
 
     __Example Request__:
 
@@ -94,7 +123,9 @@ There are two calls to __GET__:
             }]
         }
 
-2.  The second is `/:identity` where `:identity` is either the name or email address of the user you are looking for.
+2.  The second is `/:identity`, where `:identity` is either the name or email address of the user you are looking for.
+
+    This will return an object with a message and an object containing the user.
 
     __Example Request__:
 
@@ -120,7 +151,7 @@ There are two calls to __GET__:
             }
         }
 
-###POST
+####POST
 
 We use __POST__ to update an existing user. This is done by specifying the `:identity` that we want to update and posting data. Again `:identity` can be the name or the email address of the user we want.
 
@@ -153,7 +184,7 @@ Body:
         "message": "The user has been successfully updated."
     }
 
-###DELETE
+####DELETE
 
 When we want to delete a user from the table we use the __DELETE__ method. As with __POST__ we specify the `:identity` of the user to be deleted.
 
