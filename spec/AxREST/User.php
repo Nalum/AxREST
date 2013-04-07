@@ -87,6 +87,28 @@ class User extends ObjectBehavior
         $response->body->shouldBe(json_encode($expectedResult));
     }
 
+    function it_should_get_a_list_of_all_users()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/',
+            'contentType' => 'application/json'
+        )), array());
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "Success.";
+        $expectedResult->users[] = new \stdClass();
+        $expectedResult->users[0]->name = 'testing';
+        $expectedResult->users[0]->email = 'testing@test.com';
+        $expectedResult->users[0]->password = hash("sha256", "Passw0rd");
+        $expectedResult->users[0]->dateOfBirth = null;
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->code->shouldBe(\Tonic\Response::OK);
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
     function it_should_update_a_user()
     {
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
@@ -104,6 +126,28 @@ class User extends ObjectBehavior
         $response = $this->exec();
         $response->shouldReturnAnInstanceOf("Tonic\Response");
         $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_get_one_user()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/testing@test2.com',
+            'contentType' => 'application/json'
+        )), array());
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "Success.";
+        $expectedResult->users[] = new \stdClass();
+        $expectedResult->users[0]->name = 'testing';
+        $expectedResult->users[0]->email = 'testing@test.com';
+        $expectedResult->users[0]->password = hash("sha256", "Passw0rd");
+        $expectedResult->users[0]->dateOfBirth = "1975-03-24";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->code->shouldBe(\Tonic\Response::OK);
         $response->body->shouldBe(json_encode($expectedResult));
     }
 
