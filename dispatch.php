@@ -11,7 +11,7 @@ ini_set('error_reporting', E_ALL ^ E_WARNING);
 ini_set('display_errors', true);
 
 // Load the Tonic Autoloader.
-require './Tonic/Autoloader.php';
+require './vendor/autoload.php';
 
 // Get the Database details from the Cloud Service.
 $services_json = json_decode(getenv("VCAP_SERVICES"),true);
