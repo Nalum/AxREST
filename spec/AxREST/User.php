@@ -123,7 +123,7 @@ class User extends ObjectBehavior
         $response = $this->exec();
         $response->shouldReturnAnInstanceOf("Tonic\Response");
         $response->contentType->shouldBe("application/json");
-        $response->code->shouldBe(\Tonic\Response::NOTMODIFIED);
+        $response->code->shouldBe(\Tonic\Response::BADREQUEST);
         $response->body->shouldBe(json_encode($expectedResult));
     }
 
@@ -143,7 +143,7 @@ class User extends ObjectBehavior
         $response = $this->exec();
         $response->shouldReturnAnInstanceOf("Tonic\Response");
         $response->contentType->shouldBe("application/json");
-        $response->code->shouldBe(\Tonic\Response::ACCEPTED);
+        $response->code->shouldBe(\Tonic\Response::OK);
         $response->body->shouldBe(json_encode($expectedResult));
     }
 }

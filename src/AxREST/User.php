@@ -78,7 +78,7 @@ class User extends \Tonic\Resource
             // Is the identity a valid email address? If so then get the user by the email address field.
             if (false === filter_var($identity, FILTER_VALIDATE_EMAIL)) {
                 $this->output->message = "You must supply a valid email address.";
-                $this->responseCode = \Tonic\Response::NOTACCEPTABLE;
+                $this->responseCode = \Tonic\Response::BADREQUEST;
                 return new \Tonic\Response($this->responseCode, $this->output);
             }
 
@@ -152,7 +152,7 @@ class User extends \Tonic\Resource
             if (0 === $query->rowCount()) {
                 if ("00000" === $query->errorCode()) {
                     $this->output->message = "No rows affected by query.";
-                    $this->responseCode = \Tonic\Response::NOTMODIFIED;
+                    $this->responseCode = \Tonic\Response::BADREQUEST;
                 } else {
                     $this->output->message = "There was an error running the query.";
                     $this->output->error[] = $query->errorInfo();
@@ -183,7 +183,7 @@ class User extends \Tonic\Resource
         // Do we have an identity? No tell the requester that we need one.
         if (false === isset($identity) || false === filter_var($identity, FILTER_VALIDATE_EMAIL)) {
             $this->output->message = "You must specifiy a user to be updated.";
-            $this->responseCode = \Tonic\Response::NOTACCEPTABLE;
+            $this->responseCode = \Tonic\Response::BADREQUEST;
         } else { // Yes.
             // Validate the data before continuing.
             $error = $this->validate(true);
@@ -191,7 +191,7 @@ class User extends \Tonic\Resource
             // If not valid let the requester know.
             if (true === $error) {
                 $this->output->message = "You must provide valid data to be updated.";
-                $this->responseCode = \Tonic\Response::NOTFOUND;
+                $this->responseCode = \Tonic\Response::BADREQUEST;
             } else { // We have valid data so continue.
                 $sql = "Update `user` SET ";
 
@@ -245,16 +245,16 @@ class User extends \Tonic\Resource
                 if (0 === $query->rowCount()) {
                     if ("00000" === $query->errorCode()) {
                         $this->output->message = "No rows affected by query.";
-                        $this->responseCode = \Tonic\Response::NOTMODIFIED;
+                        $this->headers["Location"] = "/" . $identity;
+                        $this->responseCode = \Tonic\Response::BADREQUEST;
                     } else {
                         $this->output->message = "There was an error running the query.";
                         $this->output->error[] = $query->errorInfo();
-                        $this->responseCode = \Tonic\Response::CONFLICT;
+                        $this->responseCode = \Tonic\Response::INTERNALSERVERERROR;
                     }
                 } else { // The user was updated.
                     $this->output->message = "The user has been successfully updated.";
                     $this->headers["Location"] = true === isset($this->request->data->email) ? "/" . $this->request->data->email : "/" . $identity;
-                    $this->responseCode = \Tonic\Response::ACCEPTED;
                 }
             }
         }
@@ -287,15 +287,14 @@ class User extends \Tonic\Resource
             if (0 === $query->rowCount()) {
                 if ("00000" === $query->errorCode()) {
                     $this->output->message = "No rows affected by query.";
-                    $this->responseCode = \Tonic\Response::NOTMODIFIED;
+                    $this->responseCode = \Tonic\Response::BADREQUEST;
                 } else {
                     $this->output->message = "There was an error running the query.";
                     $this->output->error[] = $query->errorInfo();
-                    $this->responseCode = \Tonic\Response::NOTFOUND;
+                    $this->responseCode = \Tonic\Response::INTERNALSERVERERROR;
                 }
             } else { // User removed successfully.
                 $this->output->message = "The user has been successfully deleted.";
-                $this->responseCode = \Tonic\Response::ACCEPTED;
             }
         }
         return new \Tonic\Response($this->responseCode, $this->output);
