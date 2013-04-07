@@ -18,7 +18,7 @@ class User extends ObjectBehavior
     {
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/',
-            'Content-Type' => 'application/json'
+            'contentType' => 'application/json'
         )), array());
 
         $expectedResult = new \stdClass();
@@ -35,7 +35,7 @@ class User extends ObjectBehavior
     {
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/testing@test.com',
-            'Content-Type' => 'application/json'
+            'contentType' => 'application/json'
         )), array(
             'identity' => 'testing@test.com'
         ));
@@ -55,7 +55,7 @@ class User extends ObjectBehavior
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri' => '/',
             'method' => 'PUT',
-            'Content-Type' => 'application/json',
+            'contentType' => 'application/json',
             'data' => '{"name":"testing", "email":"testing@@test.com", "password":"Passw0rd"}'
         )), array());
 
@@ -74,7 +74,7 @@ class User extends ObjectBehavior
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/',
             'method' => 'PUT',
-            'Content-Type' => 'application/json',
+            'contentType' => 'application/json',
             'data' => '{"name":"testing", "email":"testing@test.com", "password":"Passw0rd"}'
         )), array());
 
@@ -92,7 +92,7 @@ class User extends ObjectBehavior
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/testing@test.com',
             'method' => 'POST',
-            'Content-Type' => 'application/json',
+            'contentType' => 'application/json',
             'data' => '{"dateOfBirth":"1975-03-24"}'
         )), array(
             'identity' => 'testing@test.com'
@@ -110,11 +110,11 @@ class User extends ObjectBehavior
     function it_should_say_no_record_affected()
     {
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
-            'uri'=>'/testing@test.com',
+            'uri'=>'/testing@test2.com',
             'method' => 'DELETE',
-            'Content-Type' => 'application/json'
+            'contentType' => 'application/json'
         )), array(
-            'identity' => 'testing@test.com'
+            'identity' => 'testing@test2.com'
         ));
 
         $expectedResult = new \stdClass();
@@ -132,18 +132,18 @@ class User extends ObjectBehavior
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/testing@test.com',
             'method' => 'DELETE',
-            'Content-Type' => 'application/json'
+            'contentType' => 'application/json'
         )), array(
             'identity' => 'testing@test.com'
         ));
 
         $expectedResult = new \stdClass();
-        $expectedResult->message = "The user has been successfully updated.";
+        $expectedResult->message = "The user has been successfully deleted.";
 
         $response = $this->exec();
         $response->shouldReturnAnInstanceOf("Tonic\Response");
         $response->contentType->shouldBe("application/json");
-        $response->code->shouldBe(\Tonic\Response::OK);
+        $response->code->shouldBe(\Tonic\Response::ACCEPTED);
         $response->body->shouldBe(json_encode($expectedResult));
     }
 }
