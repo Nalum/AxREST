@@ -6,16 +6,25 @@ A simple RESTful service to maintain a database table of users.
 Requirements
 ------------
 
--   PHP v5.3+
--   [Tonic v3.1+](https://github.com/peej/tonic/tree/v3.1)
+-   PHP v5.3.1+
 -   MySQL v5.1+
+
+### Libraries
+
+-   [Tonic v3.1+](https://github.com/peej/tonic/tree/v3.1) for the RESTful service.
+-   [phpspec2](http://phpspec.net) for the unit testing.
 
 How To
 ------
 
 ###Local Set-up
 
-Take the folder `/src/Tonic` from the Tonic github repository and place it in the root folder of this service `/Tonic`.
+I am using Composer to get all required libraries for the system.
+
+To set up run the following commands in the project root folder: (assumption of running Linux OS)
+
+    curl http://getcomposer.org/installer | php
+    php composer.phar install --dev
 
 ###MySQL Table
 
@@ -38,7 +47,7 @@ The following SQL will add the table to your database.
         PRIMARY KEY (`email`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-To connect to your database find the following on line 16 in `./dispatch.php`:
+To connect to your database edit the file `./config.php`:
 
     // Get the Database details from the Cloud Service.
     $services_json = json_decode(getenv("VCAP_SERVICES"),true);
@@ -48,7 +57,15 @@ To connect to your database find the following on line 16 in `./dispatch.php`:
     define('PDO_CONN_USER', $mysql_config["username"]);
     define('PDO_CONN_PASS', $mysql_config["password"]);
 
-If you are using the AppFrog Cloud hosting you should not need to change anything. Otherwise change the `PDO_*` constants to suit your connection details.
+If you are using the AppFrog Cloud hosting you make sure you are using the correct credentials set. Otherwise change the `PDO_*` constants to suit your connection details.
+
+###Unit Testing
+
+You will need to set up a database, with the user table above, that the service can be run against. Once you have that done update the connection details in `/spec/config.php`
+
+To run the unit tests, run the following command in the root folder of the project:
+
+    bin/phpspec run
 
 ###Use Service
 

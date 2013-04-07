@@ -152,12 +152,12 @@ class User extends \Tonic\Resource
             if (0 === $query->rowCount()) {
                 if ("00000" === $query->errorCode()) {
                     $this->output->message = "No rows affected by query.";
+                    $this->responseCode = \Tonic\Response::NOTMODIFIED;
                 } else {
                     $this->output->message = "There was an error running the query.";
                     $this->output->error[] = $query->errorInfo();
+                    $this->responseCode = \Tonic\Response::CONFLICT;
                 }
-
-                $this->responseCode = \Tonic\Response::CONFLICT;
             } else { // Inserted successfully.
                 $this->output->message = "User successfully created.";
                 $this->responseCode = \Tonic\Response::CREATED;
@@ -245,12 +245,12 @@ class User extends \Tonic\Resource
                 if (0 === $query->rowCount()) {
                     if ("00000" === $query->errorCode()) {
                         $this->output->message = "No rows affected by query.";
+                        $this->responseCode = \Tonic\Response::NOTMODIFIED;
                     } else {
                         $this->output->message = "There was an error running the query.";
                         $this->output->error[] = $query->errorInfo();
+                        $this->responseCode = \Tonic\Response::CONFLICT;
                     }
-
-                    $this->responseCode = \Tonic\Response::NOTFOUND;
                 } else { // The user was updated.
                     $this->output->message = "The user has been successfully updated.";
                     $this->headers["Location"] = true === isset($this->request->data->email) ? "/" . $this->request->data->email : "/" . $identity;
@@ -287,12 +287,12 @@ class User extends \Tonic\Resource
             if (0 === $query->rowCount()) {
                 if ("00000" === $query->errorCode()) {
                     $this->output->message = "No rows affected by query.";
+                    $this->responseCode = \Tonic\Response::NOTMODIFIED;
                 } else {
                     $this->output->message = "There was an error running the query.";
                     $this->output->error[] = $query->errorInfo();
+                    $this->responseCode = \Tonic\Response::NOTFOUND;
                 }
-
-                $this->responseCode = \Tonic\Response::NOTFOUND;
             } else { // User removed successfully.
                 $this->output->message = "The user has been successfully deleted.";
                 $this->responseCode = \Tonic\Response::ACCEPTED;
@@ -317,6 +317,7 @@ class User extends \Tonic\Resource
         });
 
         $this->after(function ($response) {
+            $response->contentType = "application/json";
             $response->body = json_encode($response->body); // Encode the data into JSON.
         });
     }

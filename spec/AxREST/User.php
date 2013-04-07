@@ -4,9 +4,7 @@ namespace spec\AxREST;
 
 use PHPSpec2\ObjectBehavior;
 
-define('PDO_CONN_STRING', 'mysql:host=localhost;dbname=axrest;');
-define('PDO_CONN_USER', 'axrest');
-define('PDO_CONN_PASS', 'BWKr7xLhWKpFaScu');
+require_once __DIR__ . '/../config.php';
 
 class User extends ObjectBehavior
 {
@@ -16,12 +14,134 @@ class User extends ObjectBehavior
         $this->shouldHaveType('AxREST\User');
     }
 
-    function it_should_return_a_Tonic_Response()
+    function it_should_say_no_users_in_the_database()
     {
         $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
             'uri'=>'/',
             'Content-Type' => 'application/json'
-        )), array('{"name":"testing", "email":"te@st.ing", "password":"Passw0rd"}'));
-        $this->exec()->shouldReturnAnInstanceOf("Tonic\Response");
+        )), array());
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "We have no users in the database at the moment.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->code->shouldBe(\Tonic\Response::NOTFOUND);
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_say_no_user_by_that_identity()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/testing@test.com',
+            'Content-Type' => 'application/json'
+        )), array(
+            'identity' => 'testing@test.com'
+        ));
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "We have no user by that identification.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->code->shouldBe(\Tonic\Response::NOTFOUND);
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_say_the_email_address_is_not_valid()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri' => '/',
+            'method' => 'PUT',
+            'Content-Type' => 'application/json',
+            'data' => '{"name":"testing", "email":"testing@@test.com", "password":"Passw0rd"}'
+        )), array());
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "An error was encountered.";
+        $expectedResult->error[] = "The email must be valid.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_add_a_user()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/',
+            'method' => 'PUT',
+            'Content-Type' => 'application/json',
+            'data' => '{"name":"testing", "email":"testing@test.com", "password":"Passw0rd"}'
+        )), array());
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "User successfully created.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_update_a_user()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/testing@test.com',
+            'method' => 'POST',
+            'Content-Type' => 'application/json',
+            'data' => '{"dateOfBirth":"1975-03-24"}'
+        )), array(
+            'identity' => 'testing@test.com'
+        ));
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "The user has been successfully updated.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_say_no_record_affected()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/testing@test.com',
+            'method' => 'DELETE',
+            'Content-Type' => 'application/json'
+        )), array(
+            'identity' => 'testing@test.com'
+        ));
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "No rows affected by query.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
+    }
+
+    function it_should_delete_a_user()
+    {
+        $this->beConstructedWith(new \Tonic\Application(), new \Tonic\Request(array(
+            'uri'=>'/testing@test.com',
+            'method' => 'DELETE',
+            'Content-Type' => 'application/json'
+        )), array(
+            'identity' => 'testing@test.com'
+        ));
+
+        $expectedResult = new \stdClass();
+        $expectedResult->message = "The user has been successfully updated.";
+
+        $response = $this->exec();
+        $response->shouldReturnAnInstanceOf("Tonic\Response");
+        $response->contentType->shouldBe("application/json");
+        $response->body->shouldBe(json_encode($expectedResult));
     }
 }
