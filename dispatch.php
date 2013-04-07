@@ -24,7 +24,7 @@ define('PDO_CONN_PASS', $mysql_config["password"]);
 // Set the config for Tonic. Loading in our Resource files.
 $config = array(
     'load' => array(
-        './AxREST/*.php',
+        './src/AxREST/*.php',
     )
 );
 
