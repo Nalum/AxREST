@@ -7,11 +7,11 @@
  *
  * @author Luke Mallon <mallon.luke@gmail.com>
  */
-ini_set('error_reporting', E_ALL ^ E_WARNING);
-ini_set('display_errors', true);
 
 // Load the Tonic Autoloader.
 require_once './vendor/autoload.php';
+
+// Load Database config
 require_once 'config.php';
 
 // Set the config for Tonic. Loading in our Resource files.
