@@ -145,7 +145,14 @@ class User extends \Tonic\Resource
             $query->bindValue(":name", $this->request->data->name);
             $query->bindValue(":email", $this->request->data->email);
             $query->bindValue(":password", hash('sha256', $this->request->data->password));
-            $query->bindValue(":dateOfBirth", $this->request->data->dateOfBirth);
+
+            if (null !== $this->request->data->dateOfBirth) {
+                $dob = \DateTime::createFromFormat('Y-m-d', $this->request->data->dateOfBirth);
+                $query->bindValue(":dateOfBirth", $dob->format('Y-m-d'));
+            } else {
+                $query->bindValue(":dateOfBirth", null);
+            }
+
             $query->execute();
 
             // Check that the new user was successfully inserted into the database. If not let the requester know what happened.
@@ -194,24 +201,42 @@ class User extends \Tonic\Resource
                 $this->responseCode = \Tonic\Response::BADREQUEST;
             } else { // We have valid data so continue.
                 $sql = "Update `user` SET ";
+                $setOne = false; // Set to true when the first param is set.
 
                 // Do we have a name in the data?
                 if (true === isset($this->request->data->name)) {
+                    $setOne = true;
                     $sql .= "`name` = :name";
                 }
 
                 // Do we have an email in the data?
                 if (true === isset($this->request->data->email)) {
+                    if (true === $setOne) {
+                        $sql .= ", ";
+                    } else {
+                        $setOne = true;
+                    }
+
                     $sql .= "`email` = :email";
                 }
 
                 // Do we have a password in the data?
                 if (true === isset($this->request->data->password)) {
+                    if (true === $setOne) {
+                        $sql .= ", ";
+                    } else {
+                        $setOne = true;
+                    }
+
                     $sql .= "`password` = :password";
                 }
 
                 // Do we have a dateOfBirth in the data.
                 if (true === isset($this->request->data->dateOfBirth)) {
+                    if (true === $setOne) {
+                        $sql .= ", ";
+                    }
+
                     $sql .= "`dateOfBirth` = :dateOfBirth";
                 }
 
@@ -231,12 +256,13 @@ class User extends \Tonic\Resource
 
                 // Do we have a password in the data?
                 if (true === isset($this->request->data->password)) {
-                    $query->bindValue(':password', $this->request->data->password);
+                    $query->bindValue(':password', hash("sha256", $this->request->data->password));
                 }
 
                 // Do we have a dateOfBirth in the data?
                 if (true === isset($this->request->data->dateOfBirth)) {
-                    $query->bindValue(':dateOfBirth', $this->request->data->dateOfBirth);
+                    $dob = \DateTime::createFromFormat('Y-m-d', $this->request->data->dateOfBirth);
+                    $query->bindValue(":dateOfBirth", $dob->format('Y-m-d'));
                 }
 
                 $query->execute();
